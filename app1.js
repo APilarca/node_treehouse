@@ -1,5 +1,4 @@
 const https = require('https');
-const username = "chalkers";
 // Problem: need simple way to find badges and JS points for users
 // Soluton: Use Node.js to connect to TH API
 
@@ -13,7 +12,25 @@ function printMessage(username, badgeCount, points) {
 	console.log(message)
 }
 
-const request = https.get(`https://teamtreehouse.com/${username}.json`, response => {
-	console.log(response.statusCode);
-});
+function getProfile(username) {
+	try {
+		const request = https.get(`https://teamtreehouse.com/${username}.json`, response => {
+			let body = "";
+			response.on('data', data => {
+				body += data.toString();
+			});
 
+			response.on('end', () => {
+				const profile = JSON.parse(body);
+				printMessage(username, profile.badges.length, profile.points.JavaScript);
+			});
+		});
+		request.on('error', error => console.error(`Problem with request: ${error.message}`))
+	} catch (error) {
+		console.error(error.message);
+	}
+}
+
+const users = process.argv.slice(2);
+
+users.forEach(getProfile);
