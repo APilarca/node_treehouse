@@ -1,25 +1,43 @@
-// http://api.wunderground.com/api/d3358f0b76b5f93f/conditions/q/CA/San_Francisco.json
-// `http://api.wunderground.com/api/d3358f0b76b5f93f/conditions/q/${state}/${city}.json`
 const https = require('https');
 const api = require('./api.json')
 const http = require('http');
 
-function printMessage(weather, query) {
-	const message = `${location} is ${weather} today`
+function printError(error) {
+	console.error(error.message);
+}
+
+function printWeather(weather) {
+	const message = `Current temperature in ${weather.current_observation.display_location.city} today is ${weather.current_observation.temp_f}F`;
 	console.log(message)
 }
 
 function getWeather(query) {
-	const request = https.get(`http://api.wunderground.com/api/${api.key}/conditions/q/${query}.json`, response => {
-		let body = " ";
-		response.on('data', chunk => {
-			body += chunk;
-		});
+	try {
+		const request = https.get(`https://api.wunderground.com/api/${api.key}/conditions/q/${query}.json`, response => {
+			if (response.statusCode === 200) {
+				let body = "";
+				response.on('data', chunk => {
+					body += chunk;
+				});
 
-		response.on('end', () => {
-			console.log(body);
+				response.on('end', () => {
+					try {
+					const weather = JSON.parse(body);
+					printWeather(weather);
+					} catch(error) {
+						printError(error);
+					}
+				});
+			} else {
+				const message = `There was an error getting weather for ${query} (${http.STATUS_CODES[response.statusCode]})`;
+				const statusCodeError = new Error(message);
+				printError(statusCodeError);
+			}
 		});
-	});
+		request.on('error', printError)
+	} catch (error) {
+		printError(error);
+	}
 }
 
-module.exports.getWeather = get;
+module.exports.get = getWeather;
